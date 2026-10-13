@@ -18,18 +18,24 @@ import {
 import { SystemHealth } from '../types';
 import { StatusBadge } from '../components/ui/StatusBadge';
 
+import { useAuth } from '../context/AuthContext';
+import { Lock, KeyRound, CheckCircle2, ShieldCheck } from 'lucide-react';
+
 interface OverviewPageProps {
   health: SystemHealth | null;
   loading: boolean;
   error: string | null;
   onRefresh: () => void;
+  onOpenAuth: () => void;
 }
 
 export const OverviewPage: React.FC<OverviewPageProps> = ({
   health,
   loading,
   error,
+  onOpenAuth,
 }) => {
+  const { user, isAuthenticated, setupStatus } = useAuth();
   const isDbConnected = Boolean(health?.database?.connected);
 
   // Formatação de moeda real brasileira
@@ -55,6 +61,48 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             <p className="text-xs text-slate-600 mt-1 leading-relaxed">
               O backend Express e a estrutura PostgreSQL estão configurados para garantir segurança, validação centralizada e migrações versionadas. Funções comerciais (PDV, vendas, produtos, caixa e fiado) não foram inventadas ou simuladas e serão implementadas nas próximas etapas após sua validação.
             </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Cartão da Etapa 2: Autenticação Segura */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className={`p-2.5 rounded-lg shrink-0 ${isAuthenticated ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}`}>
+              {isAuthenticated ? <ShieldCheck size={20} /> : <Lock size={20} />}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-slate-900">
+                  Etapa 2: Autenticação Segura e Controle de Acesso
+                </h3>
+                <StatusBadge 
+                  status={isAuthenticated ? 'success' : setupStatus?.isInitialized ? 'neutral' : 'warning'} 
+                  label={isAuthenticated ? 'Sessão Ativa' : setupStatus?.isInitialized ? 'Pronto para Login' : 'Aguardando Primeiro Acesso'} 
+                />
+              </div>
+              <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                {isAuthenticated && user
+                  ? `Usuário autenticado: ${user.name} (${user.role.toUpperCase()}) com token JWT assinado.`
+                  : setupStatus?.isInitialized
+                  ? 'O administrador Eduardo já está registrado. Faça login para acessar as operações restritas.'
+                  : 'O administrador Eduardo ainda não definiu sua senha mestra. Clique no botão ao lado para realizar o primeiro acesso com senha forte.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="shrink-0 self-start sm:self-auto">
+            {!isAuthenticated && (
+              <button
+                type="button"
+                onClick={onOpenAuth}
+                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs transition-colors"
+              >
+                {!setupStatus?.isInitialized ? <KeyRound size={14} /> : <Lock size={14} />}
+                <span>{!setupStatus?.isInitialized ? 'Criar Senha de Eduardo' : 'Entrar na Conta'}</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

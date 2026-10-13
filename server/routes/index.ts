@@ -5,11 +5,15 @@
 
 import { Router, Request, Response } from 'express';
 import healthRoutes from './health.routes.js';
+import authRoutes from './auth.routes.js';
 
 const apiRouter = Router();
 
 // Rota base de saúde e diagnóstico
 apiRouter.use('/health', healthRoutes);
+
+// Rotas de autenticação e contas
+apiRouter.use('/auth', authRoutes);
 
 // Tratamento de rotas inexistentes dentro de /api/*
 apiRouter.use('*', (req: Request, res: Response) => {

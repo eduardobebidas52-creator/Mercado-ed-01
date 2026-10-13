@@ -12,11 +12,14 @@ import { DatabaseStatusPage } from './pages/DatabaseStatusPage';
 import { PendingModulesPage } from './pages/PendingModulesPage';
 import { ActiveTab, SystemHealth } from './types';
 import { fetchSystemHealth } from './api/health';
+import { AuthProvider } from './context/AuthContext';
+import { AuthModal } from './components/auth/AuthModal';
 
-export default function App() {
+function AppContent() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const [health, setHealth] = useState<SystemHealth | null>(null);
   const [loading, setLoading] = useState(false);
@@ -60,6 +63,7 @@ export default function App() {
           health={health}
           loading={loading}
           onRefresh={loadHealth}
+          onOpenAuth={() => setIsAuthModalOpen(true)}
         />
 
         {/* Conteúdo da Página Selecionada */}
@@ -70,6 +74,7 @@ export default function App() {
               loading={loading}
               error={error}
               onRefresh={loadHealth}
+              onOpenAuth={() => setIsAuthModalOpen(true)}
             />
           )}
 
@@ -80,6 +85,20 @@ export default function App() {
           {activeTab === 'roadmap' && <PendingModulesPage />}
         </main>
       </div>
+
+      {/* Modal de Autenticação / Cadastro Inicial */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

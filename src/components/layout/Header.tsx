@@ -4,8 +4,9 @@
  */
 
 import React from 'react';
-import { Menu, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Menu, RefreshCw, CheckCircle2, AlertCircle, User, LogOut, KeyRound } from 'lucide-react';
 import { ActiveTab, SystemHealth } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 interface HeaderProps {
   activeTab: ActiveTab;
@@ -13,6 +14,7 @@ interface HeaderProps {
   health: SystemHealth | null;
   loading: boolean;
   onRefresh: () => void;
+  onOpenAuth: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -21,7 +23,10 @@ export const Header: React.FC<HeaderProps> = ({
   health,
   loading,
   onRefresh,
+  onOpenAuth,
 }) => {
+  const { user, isAuthenticated, setupStatus, logout } = useAuth();
+
   const titles: Record<ActiveTab, string> = {
     overview: 'Visão Geral do Sistema',
     architecture: 'Arquitetura e Comunicação',
@@ -30,9 +35,10 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const isDbConnected = Boolean(health?.database?.connected);
+  const isFirstSetup = !setupStatus?.isInitialized;
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 gap-8 shrink-0">
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 gap-6 shrink-0">
       {/* Zona 1: Botão mobile + Trilha de Contexto */}
       <div className="flex items-center gap-3 min-w-0">
         <button
@@ -56,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Zona 2: Indicador de Conexão com o Backend e Banco */}
-      <div className="hidden sm:flex items-center gap-4 text-xs">
+      <div className="hidden lg:flex items-center gap-4 text-xs">
         <div className="flex items-center gap-1.5 text-slate-600">
           {health?.status === 'healthy' ? (
             <CheckCircle2 size={15} className="text-emerald-600" />
@@ -82,18 +88,59 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Zona 3: Ação de Atualização de Diagnóstico */}
-      <div className="flex items-center gap-3 shrink-0">
+      {/* Zona 3: Autenticação + Atualização de Diagnóstico */}
+      <div className="flex items-center gap-2.5 shrink-0">
         <button
           type="button"
           onClick={onRefresh}
           disabled={loading}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap shrink-0"
+          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 rounded-lg transition-colors disabled:opacity-50 whitespace-nowrap shrink-0"
           title="Consultar novamente o status da API e banco"
         >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          <span>{loading ? 'Verificando...' : 'Atualizar Diagnóstico'}</span>
+          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+          <span className="hidden xl:inline">{loading ? 'Verificando...' : 'Diagnóstico'}</span>
         </button>
+
+        {isAuthenticated && user ? (
+          <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+            <div className="flex items-center gap-2 text-xs">
+              <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="hidden sm:block text-left">
+                <div className="font-semibold text-slate-900 leading-tight truncate max-w-[120px]">
+                  {user.name}
+                </div>
+                <div className="text-[10px] text-slate-500 uppercase tracking-wider font-mono">
+                  {user.role}
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={logout}
+              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors ml-1"
+              title="Encerrar sessão"
+              aria-label="Encerrar sessão"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onOpenAuth}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 shadow-2xs ${
+              isFirstSetup
+                ? 'bg-amber-500 hover:bg-amber-600 text-white animate-pulse'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
+          >
+            {isFirstSetup ? <KeyRound size={14} /> : <User size={14} />}
+            <span>{isFirstSetup ? 'Primeiro Acesso (Eduardo)' : 'Entrar'}</span>
+          </button>
+        )}
       </div>
     </header>
   );

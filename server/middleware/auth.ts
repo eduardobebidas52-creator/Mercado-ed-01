@@ -4,7 +4,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { env } from '../config/env.js';
+import { verifyAuthToken } from '../services/auth.service.js';
 
 export interface AuthenticatedUser {
   id: string;
@@ -52,20 +52,19 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     return;
   }
 
-  if (!env.JWT_SECRET) {
-    res.status(500).json({
+  try {
+    const user = verifyAuthToken(token);
+    req.user = user;
+    next();
+  } catch {
+    res.status(401).json({
       success: false,
       error: {
-        code: 'SERVER_MISCONFIGURED',
-        message: 'Chave secreta JWT não configurada no servidor.',
+        code: 'INVALID_OR_EXPIRED_TOKEN',
+        message: 'Sessão expirada ou token inválido. Faça login novamente.',
       },
     });
-    return;
   }
-
-  // A validação completa com verificação criptográfica e decodificação do payload
-  // será conectada na etapa de autenticação após criação do login do administrador.
-  next();
 }
 
 /**
