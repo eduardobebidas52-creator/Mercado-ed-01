@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { getDbPool } from '../db/connection.js';
 import { env } from '../config/env.js';
+import { runMigrations } from '../db/migrations/runner.js';
 
 export interface AuthUser {
   id: string;
@@ -39,6 +40,11 @@ export async function getSetupStatus(): Promise<SetupStatus> {
   }
 
   try {
+    // Garante automaticamente que as migrações do banco foram aplicadas
+    await runMigrations().catch((err) => {
+      console.warn('[AuthService] Auto-migração em getSetupStatus:', err);
+    });
+
     const res = await pool.query<{ count: string }>(`
       SELECT count(*) as count 
       FROM information_schema.tables 
@@ -90,6 +96,11 @@ export async function setupInitialAdmin(data: {
   if (!pool) {
     throw new Error('Banco de dados PostgreSQL não conectado.');
   }
+
+  // Garante que o esquema e as tabelas existam no banco
+  await runMigrations().catch((err) => {
+    console.warn('[AuthService] Auto-migração em setupInitialAdmin:', err);
+  });
 
   // 1. Verifica se já existe algum usuário no sistema
   const existingUsers = await pool.query<{ count: string }>('SELECT count(*) as count FROM users;');

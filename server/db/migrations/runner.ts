@@ -27,6 +27,43 @@ export interface MigrationReport {
   message: string;
 }
 
+export const BUILTIN_MIGRATIONS: Record<string, string> = {
+  '001_initial_schema.sql': `
+CREATE TABLE IF NOT EXISTS _migrations (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(120) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(30) NOT NULL DEFAULT 'operador',
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_type VARCHAR(60) NOT NULL,
+    user_id UUID,
+    details TEXT,
+    ip_address VARCHAR(45),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+`,
+  '002_add_auth_enhancements.sql': `
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(30);
+CREATE INDEX IF NOT EXISTS idx_users_is_active ON users(is_active);
+`
+};
+
 /**
  * Obtém todos os arquivos de migração ordenados alfabeticamente
  */
@@ -44,15 +81,25 @@ export function getMigrationFiles(): MigrationFile[] {
     } catch {
       return false;
     }
-  }) || __dirname;
+  });
 
-  const files = fs.readdirSync(migrationsDir)
-    .filter(file => file.endsWith('.sql'))
-    .sort();
+  if (migrationsDir) {
+    const files = fs.readdirSync(migrationsDir)
+      .filter(file => file.endsWith('.sql'))
+      .sort();
 
-  return files.map(file => ({
-    name: file,
-    filePath: path.join(migrationsDir, file),
+    if (files.length > 0) {
+      return files.map(file => ({
+        name: file,
+        filePath: path.join(migrationsDir, file),
+      }));
+    }
+  }
+
+  // Fallback garantido para ambiente empacotado
+  return Object.keys(BUILTIN_MIGRATIONS).sort().map(name => ({
+    name,
+    filePath: '',
   }));
 }
 
@@ -174,7 +221,14 @@ export async function runMigrations(): Promise<{ success: boolean; executed: str
     for (const migration of migrationFiles) {
       if (!applied.has(migration.name)) {
         console.log(`[Migrações] Executando migração: ${migration.name}`);
-        const sql = fs.readFileSync(migration.filePath, 'utf-8');
+        const sql = migration.filePath && fs.existsSync(migration.filePath)
+          ? fs.readFileSync(migration.filePath, 'utf-8')
+          : BUILTIN_MIGRATIONS[migration.name];
+
+        if (!sql) {
+          console.warn(`[Migrações] Conteúdo não encontrado para ${migration.name}, ignorando.`);
+          continue;
+        }
 
         await client.query('BEGIN');
         try {
