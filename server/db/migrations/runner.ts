@@ -31,7 +31,21 @@ export interface MigrationReport {
  * Obtém todos os arquivos de migração ordenados alfabeticamente
  */
 export function getMigrationFiles(): MigrationFile[] {
-  const migrationsDir = __dirname;
+  const candidates = [
+    __dirname,
+    path.resolve(process.cwd(), 'server/db/migrations'),
+    path.resolve(__dirname, 'server/db/migrations'),
+    path.resolve(__dirname, '../server/db/migrations'),
+  ];
+
+  const migrationsDir = candidates.find(dir => {
+    try {
+      return fs.existsSync(dir) && fs.readdirSync(dir).some(f => f.endsWith('.sql'));
+    } catch {
+      return false;
+    }
+  }) || __dirname;
+
   const files = fs.readdirSync(migrationsDir)
     .filter(file => file.endsWith('.sql'))
     .sort();

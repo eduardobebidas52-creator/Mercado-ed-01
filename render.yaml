@@ -9,6 +9,7 @@ services:
     plan: free
     region: oregon
     buildCommand: npm install --legacy-peer-deps && npm run build
+    preDeployCommand: npm run migrate
     startCommand: npm run start
     healthCheckPath: /api/health
     envVars:
