@@ -1,0 +1,8 @@
+{
+  "name": "Mercado",
+  "description": "Sistema de gestão e operação para mini mercado com arquitetura modular, backend Node.js e banco de dados PostgreSQL.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
