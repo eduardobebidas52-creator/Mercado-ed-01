@@ -12,7 +12,8 @@ import {
   ChevronLeft, 
   ChevronRight,
   ShieldCheck,
-  Server
+  Server,
+  Package
 } from 'lucide-react';
 import { ActiveTab } from '../../types';
 
@@ -40,6 +41,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       shortLabel: 'Visão Geral',
       icon: Activity,
       description: 'Saúde da API e conexão',
+    },
+    {
+      id: 'products' as ActiveTab,
+      label: 'Produtos e Estoque',
+      shortLabel: 'Produtos',
+      icon: Package,
+      description: 'Catálogo, preços e inventário',
     },
     {
       id: 'architecture' as ActiveTab,

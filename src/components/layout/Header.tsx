@@ -29,6 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const titles: Record<ActiveTab, string> = {
     overview: 'Visão Geral do Sistema',
+    products: 'Produtos e Controle de Estoque',
     architecture: 'Arquitetura e Comunicação',
     database: 'Banco de Dados e Migrações',
     roadmap: 'Módulos Previstos e Escopo',

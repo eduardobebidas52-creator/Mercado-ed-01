@@ -20,6 +20,7 @@ import { StatusBadge } from '../components/ui/StatusBadge';
 
 import { useAuth } from '../context/AuthContext';
 import { Lock, KeyRound, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { fetchProductMetrics, ProductMetrics } from '../api/products';
 
 interface OverviewPageProps {
   health: SystemHealth | null;
@@ -37,6 +38,13 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
 }) => {
   const { user, isAuthenticated, setupStatus } = useAuth();
   const isDbConnected = Boolean(health?.database?.connected);
+  const [metrics, setMetrics] = React.useState<ProductMetrics | null>(null);
+
+  React.useEffect(() => {
+    fetchProductMetrics()
+      .then(setMetrics)
+      .catch(() => {});
+  }, [health]);
 
   // Formatação de moeda real brasileira
   const formatCurrency = (val: number) => {
@@ -248,10 +256,10 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
               <Package size={16} className="text-slate-400" />
             </div>
             <div className="text-xl font-bold font-mono tabular-nums text-slate-900">
-              0
+              {metrics?.totalProducts || 0}
             </div>
             <div className="text-[11px] text-slate-500 mt-1">
-              Cadastro na Etapa 2
+              {(metrics?.totalProducts || 0) > 0 ? `${metrics?.totalStockUnits} itens físicos` : 'Nenhum produto cadastrado'}
             </div>
           </div>
 

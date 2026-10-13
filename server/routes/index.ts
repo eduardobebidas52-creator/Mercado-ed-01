@@ -6,6 +6,7 @@
 import { Router, Request, Response } from 'express';
 import healthRoutes from './health.routes.js';
 import authRoutes from './auth.routes.js';
+import productsRoutes from './products.routes.js';
 
 const apiRouter = Router();
 
@@ -14,6 +15,9 @@ apiRouter.use('/health', healthRoutes);
 
 // Rotas de autenticação e contas
 apiRouter.use('/auth', authRoutes);
+
+// Rotas de produtos e controle de estoque
+apiRouter.use('/products', productsRoutes);
 
 // Tratamento de rotas inexistentes dentro de /api/*
 apiRouter.use('*', (req: Request, res: Response) => {
