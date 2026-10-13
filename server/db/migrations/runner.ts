@@ -192,7 +192,14 @@ export async function runMigrations(): Promise<{ success: boolean; executed: str
 }
 
 // Execução direta via CLI (npm run migrate)
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+const isDirectMigrationScript = Boolean(
+  process.argv[1] && (
+    process.argv[1].endsWith('runner.ts') ||
+    process.argv[1].endsWith('runner.js')
+  )
+);
+
+if (isDirectMigrationScript) {
   console.log('[Migrações] Iniciando executor de migrações versionadas do Mercado...');
   runMigrations()
     .then((result) => {
