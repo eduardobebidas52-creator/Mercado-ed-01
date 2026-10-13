@@ -17,7 +17,6 @@ const router = Router();
 router.get('/', async (req: Request, res: Response) => {
   try {
     const health = await getSystemHealth();
-    // Retorna HTTP 200 sempre com o status (ou 503 se o orquestrador exigir)
     res.status(health.status === 'healthy' ? 200 : 200).json(health);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Falha interna no health check';
@@ -42,6 +41,24 @@ router.get('/migrations', async (req: Request, res: Response) => {
     const message = error instanceof Error ? error.message : 'Erro ao checar migrações';
     res.status(500).json({
       error: 'Falha ao checar status das migrações.',
+      details: message,
+    });
+  }
+});
+
+/**
+ * ALL /api/health/run-migrations
+ * Executa as migrações pendentes no banco e retorna o resultado
+ */
+router.all('/run-migrations', async (req: Request, res: Response) => {
+  try {
+    const { runMigrations } = await import('../db/migrations/runner.js');
+    const result = await runMigrations();
+    res.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Erro ao executar migrações';
+    res.status(500).json({
+      error: 'Falha ao executar migrações.',
       details: message,
     });
   }

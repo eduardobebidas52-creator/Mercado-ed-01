@@ -51,6 +51,13 @@ async function startServer() {
     console.log(`[Mercado Backend] Servidor ativo em http://0.0.0.0:${env.PORT}`);
     console.log(`[Mercado Backend] Ambiente: ${env.NODE_ENV}`);
     console.log(`[Mercado Backend] Rota de integridade: http://localhost:${env.PORT}/api/health`);
+
+    if (env.DATABASE_URL) {
+      import('./server/db/migrations/runner.js')
+        .then(m => m.runMigrations())
+        .then(r => console.log('[Mercado Backend] Migrações automáticas:', r.executed))
+        .catch(err => console.warn('[Mercado Backend] Auto-migração:', err));
+    }
   });
 
   // Encerramento seguro (Graceful Shutdown)
