@@ -11,6 +11,7 @@ import { ArchitecturePage } from './pages/ArchitecturePage';
 import { DatabaseStatusPage } from './pages/DatabaseStatusPage';
 import { PendingModulesPage } from './pages/PendingModulesPage';
 import { ProductsPage } from './pages/ProductsPage';
+import { PosPage } from './pages/PosPage';
 import { ActiveTab, SystemHealth } from './types';
 import { fetchSystemHealth } from './api/health';
 import { AuthProvider } from './context/AuthContext';
@@ -78,6 +79,8 @@ function AppContent() {
               onOpenAuth={() => setIsAuthModalOpen(true)}
             />
           )}
+
+          {activeTab === 'pos' && <PosPage />}
 
           {activeTab === 'products' && <ProductsPage />}
 

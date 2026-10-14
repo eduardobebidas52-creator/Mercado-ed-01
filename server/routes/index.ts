@@ -7,6 +7,7 @@ import { Router, Request, Response } from 'express';
 import healthRoutes from './health.routes.js';
 import authRoutes from './auth.routes.js';
 import productsRoutes from './products.routes.js';
+import posRoutes from './pos.routes.js';
 
 const apiRouter = Router();
 
@@ -18,6 +19,9 @@ apiRouter.use('/auth', authRoutes);
 
 // Rotas de produtos e controle de estoque
 apiRouter.use('/products', productsRoutes);
+
+// Rotas de Frente de Caixa (PDV) e Operação de Caixa
+apiRouter.use('/pos', posRoutes);
 
 // Tratamento de rotas inexistentes dentro de /api/*
 apiRouter.use('*', (req: Request, res: Response) => {

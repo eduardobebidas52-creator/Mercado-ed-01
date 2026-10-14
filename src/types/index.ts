@@ -48,4 +48,4 @@ export interface SystemConfigSummary {
   note: string;
 }
 
-export type ActiveTab = 'overview' | 'products' | 'architecture' | 'database' | 'roadmap';
+export type ActiveTab = 'overview' | 'pos' | 'products' | 'architecture' | 'database' | 'roadmap';

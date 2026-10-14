@@ -13,7 +13,8 @@ import {
   ChevronRight,
   ShieldCheck,
   Server,
-  Package
+  Package,
+  ShoppingCart
 } from 'lucide-react';
 import { ActiveTab } from '../../types';
 
@@ -41,6 +42,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       shortLabel: 'Visão Geral',
       icon: Activity,
       description: 'Saúde da API e conexão',
+    },
+    {
+      id: 'pos' as ActiveTab,
+      label: 'Frente de Caixa (PDV)',
+      shortLabel: 'PDV',
+      icon: ShoppingCart,
+      description: 'Vendas rápidas e balcão',
     },
     {
       id: 'products' as ActiveTab,

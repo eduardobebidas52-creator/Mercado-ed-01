@@ -21,6 +21,7 @@ import { StatusBadge } from '../components/ui/StatusBadge';
 import { useAuth } from '../context/AuthContext';
 import { Lock, KeyRound, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { fetchProductMetrics, ProductMetrics } from '../api/products';
+import { fetchTodaySalesMetrics, fetchCurrentCashRegister, TodaySalesMetrics, CashRegister } from '../api/pos';
 
 interface OverviewPageProps {
   health: SystemHealth | null;
@@ -36,15 +37,26 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
   error,
   onOpenAuth,
 }) => {
-  const { user, isAuthenticated, setupStatus } = useAuth();
+  const { user, token, isAuthenticated, setupStatus } = useAuth();
   const isDbConnected = Boolean(health?.database?.connected);
   const [metrics, setMetrics] = React.useState<ProductMetrics | null>(null);
+  const [salesMetrics, setSalesMetrics] = React.useState<TodaySalesMetrics | null>(null);
+  const [register, setRegister] = React.useState<CashRegister | null>(null);
 
   React.useEffect(() => {
     fetchProductMetrics()
       .then(setMetrics)
       .catch(() => {});
-  }, [health]);
+
+    if (token) {
+      fetchTodaySalesMetrics(token)
+        .then(setSalesMetrics)
+        .catch(() => {});
+      fetchCurrentCashRegister(token)
+        .then(setRegister)
+        .catch(() => {});
+    }
+  }, [health, token]);
 
   // Formatação de moeda real brasileira
   const formatCurrency = (val: number) => {
