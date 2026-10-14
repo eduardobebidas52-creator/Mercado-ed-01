@@ -22,6 +22,8 @@ import { useAuth } from '../context/AuthContext';
 import { Lock, KeyRound, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { fetchProductMetrics, ProductMetrics } from '../api/products';
 import { fetchTodaySalesMetrics, fetchCurrentCashRegister, TodaySalesMetrics, CashRegister } from '../api/pos';
+import { fetchAlertCounts, AlertCounts } from '../api/alerts';
+import { ActiveTab } from '../types';
 
 interface OverviewPageProps {
   health: SystemHealth | null;
@@ -29,6 +31,7 @@ interface OverviewPageProps {
   error: string | null;
   onRefresh: () => void;
   onOpenAuth: () => void;
+  onSelectTab?: (tab: ActiveTab) => void;
 }
 
 export const OverviewPage: React.FC<OverviewPageProps> = ({
@@ -36,16 +39,22 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
   loading,
   error,
   onOpenAuth,
+  onSelectTab,
 }) => {
   const { user, token, isAuthenticated, setupStatus } = useAuth();
   const isDbConnected = Boolean(health?.database?.connected);
   const [metrics, setMetrics] = React.useState<ProductMetrics | null>(null);
   const [salesMetrics, setSalesMetrics] = React.useState<TodaySalesMetrics | null>(null);
   const [register, setRegister] = React.useState<CashRegister | null>(null);
+  const [alertCounts, setAlertCounts] = React.useState<AlertCounts | null>(null);
 
   React.useEffect(() => {
     fetchProductMetrics()
       .then(setMetrics)
+      .catch(() => {});
+
+    fetchAlertCounts()
+      .then(setAlertCounts)
       .catch(() => {});
 
     if (token) {
@@ -237,14 +246,131 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         </div>
       </div>
 
-      {/* Indicadores Reais do Sistema (Valores Zerados Conforme Regra Estrita) */}
+      {/* Painel de Alertas Operacionais em Tempo Real (Etapa 5) */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+            Alertas Operacionais & Acesso Direto às Abas
+          </h3>
+          <span className="text-xs text-slate-500">
+            Clique nos cards para abrir a aba correspondente
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Card Alerta de Validade */}
+          <div 
+            onClick={() => onSelectTab?.('expiry-alerts')}
+            className="cursor-pointer bg-gradient-to-br from-amber-500/10 via-white to-amber-50/40 border border-amber-200/80 hover:border-amber-400 rounded-xl p-5 shadow-sm hover:shadow-md transition group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                Alerta de Validade
+              </span>
+              <span className="text-xs text-amber-700 font-semibold group-hover:translate-x-1 transition flex items-center gap-0.5">
+                Abrir Aba →
+              </span>
+            </div>
+
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-3xl font-black text-slate-900">
+                {alertCounts?.totalValidityAlerts || 0}
+              </span>
+              <span className="text-xs text-slate-600 font-medium">lotes sob atenção</span>
+            </div>
+
+            <div className="mt-3 pt-3 border-t border-amber-100 flex items-center justify-between text-xs">
+              <span className="text-rose-600 font-bold">
+                {alertCounts?.expiredCount || 0} vencidos
+              </span>
+              <span className="text-orange-600 font-semibold">
+                {alertCounts?.expiring7DaysCount || 0} em até 7d
+              </span>
+              <span className="text-amber-700 font-medium">
+                {alertCounts?.expiring30DaysCount || 0} em até 30d
+              </span>
+            </div>
+          </div>
+
+          {/* Card Alerta de Estoque */}
+          <div 
+            onClick={() => onSelectTab?.('stock-alerts')}
+            className="cursor-pointer bg-gradient-to-br from-rose-500/10 via-white to-rose-50/40 border border-rose-200/80 hover:border-rose-400 rounded-xl p-5 shadow-sm hover:shadow-md transition group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-rose-900 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                Alerta de Estoque
+              </span>
+              <span className="text-xs text-rose-700 font-semibold group-hover:translate-x-1 transition flex items-center gap-0.5">
+                Abrir Aba →
+              </span>
+            </div>
+
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-3xl font-black text-slate-900">
+                {alertCounts?.totalStockAlerts || 0}
+              </span>
+              <span className="text-xs text-slate-600 font-medium">itens em risco</span>
+            </div>
+
+            <div className="mt-3 pt-3 border-t border-rose-100 flex items-center justify-between text-xs">
+              <span className="text-rose-600 font-bold">
+                {alertCounts?.zeroStockCount || 0} zerados
+              </span>
+              <span className="text-amber-700 font-semibold">
+                {alertCounts?.lowStockCount || 0} abaixo do mín.
+              </span>
+              <span className="text-slate-500 font-medium">
+                Gerar compras
+              </span>
+            </div>
+          </div>
+
+          {/* Card Frente de Caixa */}
+          <div 
+            onClick={() => onSelectTab?.('pos')}
+            className="cursor-pointer bg-gradient-to-br from-blue-500/10 via-white to-blue-50/40 border border-blue-200/80 hover:border-blue-400 rounded-xl p-5 shadow-sm hover:shadow-md transition group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                Frente de Caixa (PDV)
+              </span>
+              <span className="text-xs text-blue-700 font-semibold group-hover:translate-x-1 transition flex items-center gap-0.5">
+                Abrir PDV →
+              </span>
+            </div>
+
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-3xl font-black text-slate-900">
+                {salesMetrics?.totalSalesCount || 0}
+              </span>
+              <span className="text-xs text-slate-600 font-medium">vendas hoje</span>
+            </div>
+
+            <div className="mt-3 pt-3 border-t border-blue-100 flex items-center justify-between text-xs">
+              <span className="text-emerald-700 font-bold">
+                {(salesMetrics?.totalRevenue || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </span>
+              <span className={`font-semibold ${register?.status === 'OPEN' ? 'text-emerald-600' : 'text-slate-500'}`}>
+                {register?.status === 'OPEN' ? 'Caixa Aberto' : 'Caixa Fechado'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Indicadores Reais do Sistema */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            Indicadores do Negócio (Estado Real Zerado — Etapa 1)
+            Indicadores do Negócio (Estado Real do Mercado)
           </h3>
           <span className="text-xs text-slate-500">
-            Sem dados fictícios ou vendas inventadas
+            Valores computados diretamente do PostgreSQL
           </span>
         </div>
 

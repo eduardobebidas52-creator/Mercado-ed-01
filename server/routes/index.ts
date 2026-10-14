@@ -8,6 +8,7 @@ import healthRoutes from './health.routes.js';
 import authRoutes from './auth.routes.js';
 import productsRoutes from './products.routes.js';
 import posRoutes from './pos.routes.js';
+import alertsRoutes from './alerts.routes.js';
 
 const apiRouter = Router();
 
@@ -22,6 +23,9 @@ apiRouter.use('/products', productsRoutes);
 
 // Rotas de Frente de Caixa (PDV) e Operação de Caixa
 apiRouter.use('/pos', posRoutes);
+
+// Rotas de Alerta de Validade e Alerta de Estoque
+apiRouter.use('/alerts', alertsRoutes);
 
 // Tratamento de rotas inexistentes dentro de /api/*
 apiRouter.use('*', (req: Request, res: Response) => {

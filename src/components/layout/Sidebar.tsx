@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Activity, 
   Layers, 
@@ -14,9 +14,13 @@ import {
   ShieldCheck,
   Server,
   Package,
-  ShoppingCart
+  ShoppingCart,
+  CalendarDays,
+  AlertTriangle,
+  AlertOctagon
 } from 'lucide-react';
 import { ActiveTab } from '../../types';
+import { fetchAlertCounts, AlertCounts } from '../../api/alerts';
 
 interface SidebarProps {
   activeTab: ActiveTab;
@@ -35,6 +39,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
   mobileOpen,
   onCloseMobile,
 }) => {
+  const [alertCounts, setAlertCounts] = useState<AlertCounts | null>(null);
+
+  // Consulta contagens de alerta em segundo plano para manter o operador atento
+  useEffect(() => {
+    let isMounted = true;
+    const loadCounts = async () => {
+      try {
+        const counts = await fetchAlertCounts();
+        if (isMounted) setAlertCounts(counts);
+      } catch {
+        // Silencioso se backend ainda não respondeu
+      }
+    };
+
+    loadCounts();
+    const interval = setInterval(loadCounts, 15000); // Atualiza a cada 15 segundos
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
   const menuItems = [
     {
       id: 'overview' as ActiveTab,
@@ -56,6 +82,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
       shortLabel: 'Produtos',
       icon: Package,
       description: 'Catálogo, preços e inventário',
+    },
+    {
+      id: 'expiry-alerts' as ActiveTab,
+      label: 'Alerta de Validade',
+      shortLabel: 'Validade',
+      icon: CalendarDays,
+      description: 'Lotes vencidos e vencendo',
+      badge: alertCounts?.totalValidityAlerts ? alertCounts.totalValidityAlerts : undefined,
+      badgeColor: (alertCounts?.expiredCount || 0) > 0 ? 'bg-rose-500' : 'bg-amber-500',
+    },
+    {
+      id: 'stock-alerts' as ActiveTab,
+      label: 'Alerta de Estoque',
+      shortLabel: 'Estoque Baixo',
+      icon: AlertTriangle,
+      description: 'Ruptura e reposição',
+      badge: alertCounts?.totalStockAlerts ? alertCounts.totalStockAlerts : undefined,
+      badgeColor: (alertCounts?.zeroStockCount || 0) > 0 ? 'bg-rose-500' : 'bg-orange-500',
     },
     {
       id: 'architecture' as ActiveTab,
@@ -141,19 +185,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onCloseMobile();
                 }}
                 title={collapsed ? item.label : undefined}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${
+                className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                 }`}
               >
-                <Icon size={19} className="shrink-0" />
+                <div className="relative shrink-0">
+                  <Icon size={19} />
+                  {collapsed && !mobileOpen && item.badge !== undefined && item.badge > 0 && (
+                    <span className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full ${item.badgeColor} ring-2 ring-slate-900 animate-pulse`} />
+                  )}
+                </div>
+
                 {(!collapsed || mobileOpen) && (
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate leading-tight">{item.label}</div>
-                    <div className={`text-[11px] truncate ${isActive ? 'text-blue-100' : 'text-slate-400'}`}>
-                      {item.description}
+                  <div className="min-w-0 flex-1 flex items-center justify-between gap-1">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate leading-tight">{item.label}</div>
+                      <div className={`text-[11px] truncate ${isActive ? 'text-blue-100' : 'text-slate-400'}`}>
+                        {item.description}
+                      </div>
                     </div>
+                    {item.badge !== undefined && item.badge > 0 && (
+                      <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold text-white shrink-0 ${item.badgeColor} shadow-sm`}>
+                        {item.badge}
+                      </span>
+                    )}
                   </div>
                 )}
               </button>

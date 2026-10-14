@@ -12,6 +12,8 @@ import { DatabaseStatusPage } from './pages/DatabaseStatusPage';
 import { PendingModulesPage } from './pages/PendingModulesPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { PosPage } from './pages/PosPage';
+import { ExpiryAlertsPage } from './pages/ExpiryAlertsPage';
+import { StockAlertsPage } from './pages/StockAlertsPage';
 import { ActiveTab, SystemHealth } from './types';
 import { fetchSystemHealth } from './api/health';
 import { AuthProvider } from './context/AuthContext';
@@ -77,12 +79,17 @@ function AppContent() {
               error={error}
               onRefresh={loadHealth}
               onOpenAuth={() => setIsAuthModalOpen(true)}
+              onSelectTab={setActiveTab}
             />
           )}
 
           {activeTab === 'pos' && <PosPage />}
 
           {activeTab === 'products' && <ProductsPage />}
+
+          {activeTab === 'expiry-alerts' && <ExpiryAlertsPage />}
+
+          {activeTab === 'stock-alerts' && <StockAlertsPage />}
 
           {activeTab === 'architecture' && <ArchitecturePage />}
 

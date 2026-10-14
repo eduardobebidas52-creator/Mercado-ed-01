@@ -31,6 +31,8 @@ export const Header: React.FC<HeaderProps> = ({
     overview: 'Visão Geral do Sistema',
     pos: 'Frente de Caixa (PDV)',
     products: 'Produtos e Controle de Estoque',
+    'expiry-alerts': 'Alerta de Validade e Controle de Lotes',
+    'stock-alerts': 'Alerta de Estoque e Ponto de Reposição',
     architecture: 'Arquitetura e Comunicação',
     database: 'Banco de Dados e Migrações',
     roadmap: 'Módulos Previstos e Escopo',
