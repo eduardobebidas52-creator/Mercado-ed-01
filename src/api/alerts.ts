@@ -11,6 +11,11 @@ export interface AlertCounts {
   zeroStockCount: number;
   lowStockCount: number;
   totalStockAlerts: number;
+  overdueDebtsCount?: number;
+  expiringDebts7DaysCount?: number;
+  exceededCreditLimitCount?: number;
+  totalCreditAlerts?: number;
+  totalOpenDebt?: number;
 }
 
 export interface ExpiryAlertItem {

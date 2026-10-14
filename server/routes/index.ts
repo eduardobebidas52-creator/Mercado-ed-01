@@ -9,6 +9,8 @@ import authRoutes from './auth.routes.js';
 import productsRoutes from './products.routes.js';
 import posRoutes from './pos.routes.js';
 import alertsRoutes from './alerts.routes.js';
+import { customersRouter } from './customers.routes.js';
+import { creditRouter } from './credit.routes.js';
 
 const apiRouter = Router();
 
@@ -26,6 +28,12 @@ apiRouter.use('/pos', posRoutes);
 
 // Rotas de Alerta de Validade e Alerta de Estoque
 apiRouter.use('/alerts', alertsRoutes);
+
+// Rotas de Gestão de Clientes
+apiRouter.use('/customers', customersRouter);
+
+// Rotas de Alerta de Fiado e Recebimentos
+apiRouter.use('/credit', creditRouter);
 
 // Tratamento de rotas inexistentes dentro de /api/*
 apiRouter.use('*', (req: Request, res: Response) => {

@@ -14,12 +14,16 @@ import { ProductsPage } from './pages/ProductsPage';
 import { PosPage } from './pages/PosPage';
 import { ExpiryAlertsPage } from './pages/ExpiryAlertsPage';
 import { StockAlertsPage } from './pages/StockAlertsPage';
+import { CustomersPage } from './pages/CustomersPage';
+import { CreditAlertsPage } from './pages/CreditAlertsPage';
+import { ReceivablesPage } from './pages/ReceivablesPage';
 import { ActiveTab, SystemHealth } from './types';
 import { fetchSystemHealth } from './api/health';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthModal } from './components/auth/AuthModal';
 
 function AppContent() {
+  const { token } = useAuth();
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -90,6 +94,30 @@ function AppContent() {
           {activeTab === 'expiry-alerts' && <ExpiryAlertsPage />}
 
           {activeTab === 'stock-alerts' && <StockAlertsPage />}
+
+          {activeTab === 'credit-alerts' && (
+            <CreditAlertsPage
+              token={token}
+              onNavigateToCustomers={() => setActiveTab('customers')}
+              onNavigateToReceivables={() => setActiveTab('receivables')}
+            />
+          )}
+
+          {activeTab === 'customers' && (
+            <CustomersPage
+              token={token}
+              onNavigateToCreditAlerts={() => setActiveTab('credit-alerts')}
+              onNavigateToReceivables={() => setActiveTab('receivables')}
+            />
+          )}
+
+          {activeTab === 'receivables' && (
+            <ReceivablesPage
+              token={token}
+              onNavigateToCustomers={() => setActiveTab('customers')}
+              onNavigateToCreditAlerts={() => setActiveTab('credit-alerts')}
+            />
+          )}
 
           {activeTab === 'architecture' && <ArchitecturePage />}
 

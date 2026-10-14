@@ -13,6 +13,11 @@ export interface AlertCounts {
   zeroStockCount: number;
   lowStockCount: number;
   totalStockAlerts: number;
+  overdueDebtsCount: number;
+  expiringDebts7DaysCount: number;
+  exceededCreditLimitCount: number;
+  totalCreditAlerts: number;
+  totalOpenDebt: number;
 }
 
 export interface ExpiryAlertItem {
@@ -140,6 +145,11 @@ export async function getAlertCounts(): Promise<AlertCounts> {
       zeroStockCount: 0,
       lowStockCount: 0,
       totalStockAlerts: 0,
+      overdueDebtsCount: 0,
+      expiringDebts7DaysCount: 0,
+      exceededCreditLimitCount: 0,
+      totalCreditAlerts: 0,
+      totalOpenDebt: 0,
     };
   }
 
@@ -181,6 +191,28 @@ export async function getAlertCounts(): Promise<AlertCounts> {
     const zero = Number(stockRes.rows[0]?.zero_count || 0);
     const low = Number(stockRes.rows[0]?.low_count || 0);
 
+    // 3. Contadores de Fiado e Clientes
+    let overdueDebts = 0;
+    let exp7Debts = 0;
+    let limitExceeded = 0;
+    let totalDebtAmount = 0;
+
+    try {
+      const [overdueRes, exp7Res, limitRes, debtSumRes] = await Promise.all([
+        pool.query(`SELECT COUNT(*) FROM customer_debts WHERE remaining_amount > 0 AND due_date < CURRENT_DATE;`),
+        pool.query(`SELECT COUNT(*) FROM customer_debts WHERE remaining_amount > 0 AND due_date >= CURRENT_DATE AND due_date <= CURRENT_DATE + INTERVAL '7 days';`),
+        pool.query(`SELECT COUNT(*) FROM customers WHERE current_debt > credit_limit;`),
+        pool.query(`SELECT COALESCE(SUM(current_debt), 0) AS total_debt FROM customers;`),
+      ]);
+
+      overdueDebts = Number(overdueRes.rows[0]?.count || 0);
+      exp7Debts = Number(exp7Res.rows[0]?.count || 0);
+      limitExceeded = Number(limitRes.rows[0]?.count || 0);
+      totalDebtAmount = Number(debtSumRes.rows[0]?.total_debt || 0);
+    } catch {
+      // Tabela de clientes ainda pode não existir caso migrações estejam rodando
+    }
+
     return {
       expiredCount: expired,
       expiring7DaysCount: orange,
@@ -189,6 +221,11 @@ export async function getAlertCounts(): Promise<AlertCounts> {
       zeroStockCount: zero,
       lowStockCount: low,
       totalStockAlerts: zero + low,
+      overdueDebtsCount: overdueDebts,
+      expiringDebts7DaysCount: exp7Debts,
+      exceededCreditLimitCount: limitExceeded,
+      totalCreditAlerts: overdueDebts + exp7Debts + limitExceeded,
+      totalOpenDebt: Number(totalDebtAmount.toFixed(2)),
     };
   } catch (error) {
     console.error('[AlertsService] Falha ao consultar contagens de alerta:', error);
@@ -200,6 +237,11 @@ export async function getAlertCounts(): Promise<AlertCounts> {
       zeroStockCount: 0,
       lowStockCount: 0,
       totalStockAlerts: 0,
+      overdueDebtsCount: 0,
+      expiringDebts7DaysCount: 0,
+      exceededCreditLimitCount: 0,
+      totalCreditAlerts: 0,
+      totalOpenDebt: 0,
     };
   }
 }

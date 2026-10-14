@@ -43,6 +43,8 @@ import {
   fetchTodaySalesMetrics 
 } from '../api/pos';
 import { Product, fetchProducts } from '../api/products';
+import { Customer } from '../types';
+import { fetchCustomers } from '../api/customers';
 import { useAuth } from '../context/AuthContext';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -73,6 +75,13 @@ export const PosPage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'DINHEIRO' | 'PIX' | 'DEBITO' | 'CREDITO' | 'FIADO'>('DINHEIRO');
   const [amountPaidInput, setAmountPaidInput] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [customerSuggestions, setCustomerSuggestions] = useState<Customer[]>([]);
+  const [dueDateInput, setDueDateInput] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d.toISOString().split('T')[0];
+  });
   const [submittingSale, setSubmittingSale] = useState(false);
   const [saleError, setSaleError] = useState<string | null>(null);
 
@@ -148,6 +157,25 @@ export const PosPage: React.FC = () => {
     );
     setSearchResults(matched.slice(0, 6));
   }, [searchTerm, catalog]);
+
+  // Busca inteligente de clientes cadastrados para Fiado
+  useEffect(() => {
+    if (paymentMethod !== 'FIADO' || !customerName.trim() || selectedCustomer?.name === customerName) {
+      setCustomerSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetchCustomers({ search: customerName.trim(), limit: 5 }, token);
+        setCustomerSuggestions(res.customers);
+      } catch {
+        // Silencioso
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [customerName, paymentMethod, selectedCustomer, token]);
 
   // Cálculos do Carrinho
   const subtotal = cart.reduce((acc, item) => acc + item.totalPrice, 0);
@@ -239,6 +267,8 @@ export const PosPage: React.FC = () => {
     setDiscount('0,00');
     setAmountPaidInput('');
     setCustomerName('');
+    setSelectedCustomer(null);
+    setCustomerSuggestions([]);
     setSaleError(null);
   };
 
@@ -253,8 +283,13 @@ export const PosPage: React.FC = () => {
         throw new Error(`Valor em dinheiro insuficiente. Total: ${formatCurrency(total)}, Recebido: ${formatCurrency(amountPaidVal)}.`);
       }
 
-      if (paymentMethod === 'FIADO' && !customerName.trim()) {
-        throw new Error('Para vendas no fiado, informe o nome do cliente.');
+      if (paymentMethod === 'FIADO') {
+        if (!customerName.trim()) {
+          throw new Error('Para vendas no fiado, selecione ou informe o cliente.');
+        }
+        if (selectedCustomer && selectedCustomer.status === 'BLOCKED') {
+          throw new Error(`O cliente ${selectedCustomer.name} está BLOQUEADO para novas compras no fiado.`);
+        }
       }
 
       const saleData = {
@@ -268,6 +303,8 @@ export const PosPage: React.FC = () => {
         paymentMethod,
         amountPaid: amountPaidVal || total,
         customerName: customerName.trim() || undefined,
+        customerId: selectedCustomer?.id || undefined,
+        dueDate: paymentMethod === 'FIADO' ? dueDateInput : undefined,
       };
 
       const result = await createSale(saleData, token);
@@ -277,6 +314,8 @@ export const PosPage: React.FC = () => {
       setDiscount('0,00');
       setAmountPaidInput('');
       setCustomerName('');
+      setSelectedCustomer(null);
+      setCustomerSuggestions([]);
       await loadRegisterAndMetrics();
     } catch (err) {
       setSaleError(err instanceof Error ? err.message : 'Falha ao finalizar venda.');
@@ -892,20 +931,135 @@ export const PosPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Se for Fiado: Nome do Cliente */}
+              {/* Se for Fiado: Seleção / Busca de Cliente e Data de Vencimento */}
               {paymentMethod === 'FIADO' && (
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Nome do Cliente na Caderneta *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="Ex: Seu João (Rua 4)"
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-900"
-                  />
+                <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl space-y-3">
+                  <div className="relative">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-amber-900 flex items-center gap-1">
+                        <User size={13} className="text-amber-700" />
+                        <span>Cliente do Fiado *</span>
+                      </label>
+                      {selectedCustomer && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedCustomer(null);
+                            setCustomerName('');
+                          }}
+                          className="text-[11px] text-amber-700 hover:underline"
+                        >
+                          Trocar cliente
+                        </button>
+                      )}
+                    </div>
+
+                    <input
+                      type="text"
+                      required
+                      value={customerName}
+                      onChange={(e) => {
+                        setCustomerName(e.target.value);
+                        if (selectedCustomer && e.target.value !== selectedCustomer.name) {
+                          setSelectedCustomer(null);
+                        }
+                      }}
+                      placeholder="Digite o nome, telefone ou CPF do cliente..."
+                      className="w-full px-3 py-2 text-xs border border-amber-300 rounded-lg text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
+                    />
+
+                    {/* Sugestões de Autocomplete */}
+                    {customerSuggestions.length > 0 && !selectedCustomer && (
+                      <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-40 overflow-hidden divide-y divide-slate-100 max-h-48 overflow-y-auto">
+                        {customerSuggestions.map(cust => (
+                          <button
+                            key={cust.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedCustomer(cust);
+                              setCustomerName(cust.name);
+                              setCustomerSuggestions([]);
+                            }}
+                            className="w-full p-2.5 text-left hover:bg-amber-50/80 flex items-center justify-between transition-colors"
+                          >
+                            <div>
+                              <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                <span>{cust.name}</span>
+                                {cust.status === 'BLOCKED' && (
+                                  <span className="px-1 py-0.2 rounded text-[9px] font-black bg-rose-100 text-rose-700">
+                                    BLOQUEADO
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] text-slate-400">
+                                {cust.phone} {cust.cpf ? `• CPF: ${cust.cpf}` : ''}
+                              </div>
+                            </div>
+                            <div className="text-right text-[11px]">
+                              <span className="font-bold text-slate-600 block">
+                                Disp: {formatCurrency(cust.availableCredit)}
+                              </span>
+                              {cust.currentDebt > 0 && (
+                                <span className="text-[10px] text-rose-600 font-semibold">
+                                  Deve: {formatCurrency(cust.currentDebt)}
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Ficha Rápida do Cliente Selecionado */}
+                  {selectedCustomer && (
+                    <div className="p-2.5 bg-white rounded-lg border border-amber-200 text-xs space-y-1.5">
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className="text-slate-500">Limite Autorizado:</span>
+                        <span className="font-bold text-slate-700">{formatCurrency(selectedCustomer.creditLimit)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className="text-slate-500">Saldo Devedor Atual:</span>
+                        <span className="font-black text-rose-600">{formatCurrency(selectedCustomer.currentDebt)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px] pt-1 border-t border-slate-100">
+                        <span className="text-slate-500">Crédito Disponível:</span>
+                        <span className={`font-black ${selectedCustomer.availableCredit < total ? 'text-amber-600' : 'text-emerald-600'}`}>
+                          {formatCurrency(selectedCustomer.availableCredit)}
+                        </span>
+                      </div>
+
+                      {/* Alerta de Bloqueio */}
+                      {selectedCustomer.status === 'BLOCKED' && (
+                        <div className="p-2 bg-rose-100 border border-rose-300 rounded text-rose-800 text-[11px] font-bold flex items-center gap-1.5">
+                          <AlertCircle size={14} className="shrink-0 text-rose-600" />
+                          <span>Cliente BLOQUEADO para novas compras no fiado.</span>
+                        </div>
+                      )}
+
+                      {/* Alerta de Limite Ultrapassado */}
+                      {selectedCustomer.status !== 'BLOCKED' && total > selectedCustomer.availableCredit && (
+                        <div className="p-1.5 bg-amber-100 border border-amber-300 rounded text-amber-900 text-[10px] font-medium flex items-center gap-1">
+                          <AlertCircle size={12} className="shrink-0 text-amber-700" />
+                          <span>Atenção: Esta compra ultrapassará o limite estipulado.</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Data de Vencimento do Fiado */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-amber-900 mb-1 flex items-center gap-1">
+                      <Clock size={12} className="text-amber-700" />
+                      <span>Data de Vencimento da Conta</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={dueDateInput}
+                      onChange={(e) => setDueDateInput(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs border border-amber-300 rounded-lg text-slate-800 bg-white font-semibold focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    />
+                  </div>
                 </div>
               )}
 

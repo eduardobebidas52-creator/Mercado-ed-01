@@ -63,6 +63,7 @@ export interface Sale {
   amountPaid: number;
   changeAmount: number;
   customerName: string | null;
+  customerId?: string | null;
   status: 'COMPLETED' | 'CANCELLED';
   cancellationReason: string | null;
   createdAt: string;
@@ -311,6 +312,8 @@ export async function createSale(data: {
   paymentMethod: 'DINHEIRO' | 'PIX' | 'DEBITO' | 'CREDITO' | 'FIADO';
   amountPaid: number;
   customerName?: string;
+  customerId?: string;
+  dueDate?: string;
 }): Promise<Sale> {
   const pool = getDbPool();
   if (!pool) throw new Error('Banco de dados PostgreSQL não conectado.');
@@ -402,6 +405,38 @@ export async function createSale(data: {
       ? Math.max(0, Number((amountPaid - total).toFixed(2)))
       : 0;
 
+    // Validação e identificação do cliente para Fiado
+    let finalCustomerId: string | null = data.customerId || null;
+    let finalCustomerName: string | null = data.customerName?.trim() || null;
+
+    if (data.paymentMethod === 'FIADO') {
+      if (!finalCustomerId && finalCustomerName) {
+        // Tenta localizar cliente pelo nome exato ou telefone
+        const custLookup = await client.query(
+          'SELECT id, name, status, credit_limit, current_debt FROM customers WHERE name ILIKE $1 OR phone = $1 LIMIT 1;',
+          [finalCustomerName]
+        );
+        if (custLookup.rows.length > 0) {
+          finalCustomerId = custLookup.rows[0].id;
+          finalCustomerName = custLookup.rows[0].name;
+        }
+      }
+
+      if (finalCustomerId) {
+        const custCheck = await client.query(
+          'SELECT id, name, status, credit_limit, current_debt FROM customers WHERE id = $1 FOR UPDATE;',
+          [finalCustomerId]
+        );
+        if (custCheck.rows.length > 0) {
+          const c = custCheck.rows[0];
+          if (c.status === 'BLOCKED') {
+            throw new Error(`O cliente ${c.name} está BLOQUEADO para compras no fiado.`);
+          }
+          finalCustomerName = c.name;
+        }
+      }
+    }
+
     // 2. Registra a venda
     const saleRes = await client.query<{
       id: string;
@@ -410,8 +445,8 @@ export async function createSale(data: {
     }>(
       `INSERT INTO sales (
         cash_register_id, operator_id, subtotal, discount, total,
-        payment_method, amount_paid, change_amount, customer_name, status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'COMPLETED')
+        payment_method, amount_paid, change_amount, customer_name, customer_id, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'COMPLETED')
       RETURNING id, sale_number, created_at;`,
       [
         data.registerId || null,
@@ -422,7 +457,8 @@ export async function createSale(data: {
         data.paymentMethod,
         amountPaid,
         changeAmount,
-        data.customerName?.trim() || null,
+        finalCustomerName,
+        finalCustomerId,
       ]
     );
 
@@ -480,6 +516,32 @@ export async function createSale(data: {
       });
     }
 
+    // 4. Integração automática com Fiado e Contas de Clientes
+    if (data.paymentMethod === 'FIADO' && finalCustomerId) {
+      await client.query(
+        'UPDATE customers SET current_debt = current_debt + $1, updated_at = NOW() WHERE id = $2;',
+        [total, finalCustomerId]
+      );
+
+      let dueDateVal = data.dueDate;
+      if (!dueDateVal) {
+        const d = new Date();
+        d.setDate(d.getDate() + 30);
+        dueDateVal = d.toISOString().split('T')[0];
+      }
+
+      const itemSummary = processedItems.map(i => i.name).slice(0, 2).join(', ');
+      const desc = `Compra PDV #${createdSale.sale_number}${itemSummary ? ` (${itemSummary}${processedItems.length > 2 ? '...' : ''})` : ''}`;
+
+      await client.query(
+        `INSERT INTO customer_debts (
+          customer_id, sale_id, description, original_amount, paid_amount,
+          remaining_amount, due_date, status
+        ) VALUES ($1, $2, $3, $4, 0.00, $4, $5, 'PENDING');`,
+        [finalCustomerId, createdSale.id, desc, total, dueDateVal]
+      );
+    }
+
     await client.query('COMMIT');
 
     return {
@@ -493,7 +555,8 @@ export async function createSale(data: {
       paymentMethod: data.paymentMethod,
       amountPaid,
       changeAmount,
-      customerName: data.customerName?.trim() || null,
+      customerName: finalCustomerName,
+      customerId: finalCustomerId,
       status: 'COMPLETED',
       cancellationReason: null,
       createdAt: createdSale.created_at,
@@ -582,6 +645,19 @@ export async function cancelSale(
        RETURNING *;`,
       [safeReason, saleId]
     );
+
+    // Se a venda era no FIADO, estorna o débito do cliente
+    if (sale.payment_method === 'FIADO' && sale.customer_id) {
+      const saleTotal = Number(sale.total);
+      await client.query(
+        'UPDATE customers SET current_debt = GREATEST(0, current_debt - $1), updated_at = NOW() WHERE id = $2;',
+        [saleTotal, sale.customer_id]
+      );
+      await client.query(
+        "UPDATE customer_debts SET remaining_amount = 0, status = 'PAID', notes = CONCAT(COALESCE(notes, ''), ' [Venda Cancelada: ', $1::text, ']') WHERE sale_id = $2;",
+        [safeReason, saleId]
+      );
+    }
 
     await client.query('COMMIT');
 

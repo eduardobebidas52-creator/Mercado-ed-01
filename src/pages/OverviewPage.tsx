@@ -258,7 +258,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card Alerta de Validade */}
           <div 
             onClick={() => onSelectTab?.('expiry-alerts')}
@@ -270,7 +270,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                 Alerta de Validade
               </span>
               <span className="text-xs text-amber-700 font-semibold group-hover:translate-x-1 transition flex items-center gap-0.5">
-                Abrir Aba →
+                Abrir →
               </span>
             </div>
 
@@ -288,9 +288,6 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
               <span className="text-orange-600 font-semibold">
                 {alertCounts?.expiring7DaysCount || 0} em até 7d
               </span>
-              <span className="text-amber-700 font-medium">
-                {alertCounts?.expiring30DaysCount || 0} em até 30d
-              </span>
             </div>
           </div>
 
@@ -305,7 +302,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                 Alerta de Estoque
               </span>
               <span className="text-xs text-rose-700 font-semibold group-hover:translate-x-1 transition flex items-center gap-0.5">
-                Abrir Aba →
+                Abrir →
               </span>
             </div>
 
@@ -323,8 +320,37 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
               <span className="text-amber-700 font-semibold">
                 {alertCounts?.lowStockCount || 0} abaixo do mín.
               </span>
-              <span className="text-slate-500 font-medium">
-                Gerar compras
+            </div>
+          </div>
+
+          {/* Card Alerta de Fiado (Etapa 6) */}
+          <div 
+            onClick={() => onSelectTab?.('credit-alerts')}
+            className="cursor-pointer bg-gradient-to-br from-purple-500/10 via-white to-purple-50/40 border border-purple-200/80 hover:border-purple-400 rounded-xl p-5 shadow-sm hover:shadow-md transition group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-purple-600" />
+                Alerta de Fiado
+              </span>
+              <span className="text-xs text-purple-700 font-semibold group-hover:translate-x-1 transition flex items-center gap-0.5">
+                Abrir →
+              </span>
+            </div>
+
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-3xl font-black text-slate-900">
+                {alertCounts?.totalCreditAlerts || 0}
+              </span>
+              <span className="text-xs text-slate-600 font-medium">contas sob atenção</span>
+            </div>
+
+            <div className="mt-3 pt-3 border-t border-purple-100 flex items-center justify-between text-xs">
+              <span className="text-rose-600 font-bold">
+                {alertCounts?.overdueDebtsCount || 0} vencidas
+              </span>
+              <span className="text-amber-700 font-semibold">
+                {alertCounts?.expiringDebts7DaysCount || 0} em até 7d
               </span>
             </div>
           </div>

@@ -17,7 +17,10 @@ import {
   ShoppingCart,
   CalendarDays,
   AlertTriangle,
-  AlertOctagon
+  AlertOctagon,
+  Users,
+  ShieldAlert,
+  DollarSign
 } from 'lucide-react';
 import { ActiveTab } from '../../types';
 import { fetchAlertCounts, AlertCounts } from '../../api/alerts';
@@ -100,6 +103,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
       description: 'Ruptura e reposição',
       badge: alertCounts?.totalStockAlerts ? alertCounts.totalStockAlerts : undefined,
       badgeColor: (alertCounts?.zeroStockCount || 0) > 0 ? 'bg-rose-500' : 'bg-orange-500',
+    },
+    {
+      id: 'credit-alerts' as ActiveTab,
+      label: 'Alerta de Fiado',
+      shortLabel: 'Alerta Fiado',
+      icon: ShieldAlert,
+      description: 'Inadimplência e prazos',
+      badge: alertCounts?.totalCreditAlerts ? alertCounts.totalCreditAlerts : undefined,
+      badgeColor: (alertCounts?.overdueDebtsCount || 0) > 0 ? 'bg-rose-500' : 'bg-amber-500',
+    },
+    {
+      id: 'customers' as ActiveTab,
+      label: 'Gestão de Clientes',
+      shortLabel: 'Clientes',
+      icon: Users,
+      description: 'Cadastros e limites',
+    },
+    {
+      id: 'receivables' as ActiveTab,
+      label: 'Fiado e Recebimentos',
+      shortLabel: 'Recebimentos',
+      icon: DollarSign,
+      description: 'Baixas e emissão de recibos',
     },
     {
       id: 'architecture' as ActiveTab,
