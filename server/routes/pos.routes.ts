@@ -148,6 +148,7 @@ router.post('/sales', async (req: Request, res: Response) => {
       paymentMethod: body.paymentMethod,
       amountPaid: Number(body.amountPaid) || 0,
       customerName: body.customerName,
+      customerPhone: body.customerPhone,
       customerId: body.customerId,
       dueDate: body.dueDate,
     });

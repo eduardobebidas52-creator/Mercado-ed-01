@@ -132,6 +132,7 @@ export async function createSale(
     paymentMethod: 'DINHEIRO' | 'PIX' | 'DEBITO' | 'CREDITO' | 'FIADO';
     amountPaid: number;
     customerName?: string;
+    customerPhone?: string;
     customerId?: string;
     dueDate?: string;
   },

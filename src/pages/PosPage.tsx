@@ -75,6 +75,7 @@ export const PosPage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'DINHEIRO' | 'PIX' | 'DEBITO' | 'CREDITO' | 'FIADO'>('DINHEIRO');
   const [amountPaidInput, setAmountPaidInput] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
+  const [customerPhoneInput, setCustomerPhoneInput] = useState<string>('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerSuggestions, setCustomerSuggestions] = useState<Customer[]>([]);
   const [dueDateInput, setDueDateInput] = useState(() => {
@@ -267,6 +268,7 @@ export const PosPage: React.FC = () => {
     setDiscount('0,00');
     setAmountPaidInput('');
     setCustomerName('');
+    setCustomerPhoneInput('');
     setSelectedCustomer(null);
     setCustomerSuggestions([]);
     setSaleError(null);
@@ -303,6 +305,7 @@ export const PosPage: React.FC = () => {
         paymentMethod,
         amountPaid: amountPaidVal || total,
         customerName: customerName.trim() || undefined,
+        customerPhone: !selectedCustomer && customerPhoneInput.trim() ? customerPhoneInput.trim() : undefined,
         customerId: selectedCustomer?.id || undefined,
         dueDate: paymentMethod === 'FIADO' ? dueDateInput : undefined,
       };
@@ -314,6 +317,7 @@ export const PosPage: React.FC = () => {
       setDiscount('0,00');
       setAmountPaidInput('');
       setCustomerName('');
+      setCustomerPhoneInput('');
       setSelectedCustomer(null);
       setCustomerSuggestions([]);
       await loadRegisterAndMetrics();
@@ -978,6 +982,7 @@ export const PosPage: React.FC = () => {
                             onClick={() => {
                               setSelectedCustomer(cust);
                               setCustomerName(cust.name);
+                              setCustomerPhoneInput(cust.phone);
                               setCustomerSuggestions([]);
                             }}
                             className="w-full p-2.5 text-left hover:bg-amber-50/80 flex items-center justify-between transition-colors"
@@ -1007,6 +1012,22 @@ export const PosPage: React.FC = () => {
                             </div>
                           </button>
                         ))}
+                      </div>
+                    )}
+
+                    {/* Telefone opcional caso seja um novo cliente */}
+                    {!selectedCustomer && customerName.trim().length > 2 && (
+                      <div className="mt-2">
+                        <label className="block text-[11px] font-semibold text-amber-900 mb-0.5">
+                          WhatsApp / Telefone (para cobrança automática):
+                        </label>
+                        <input
+                          type="text"
+                          value={customerPhoneInput}
+                          onChange={(e) => setCustomerPhoneInput(e.target.value)}
+                          placeholder="(11) 99999-9999"
+                          className="w-full px-2.5 py-1.5 text-xs border border-amber-300 rounded-lg text-slate-900 bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 font-medium"
+                        />
                       </div>
                     )}
                   </div>

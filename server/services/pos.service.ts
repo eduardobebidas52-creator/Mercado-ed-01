@@ -312,6 +312,7 @@ export async function createSale(data: {
   paymentMethod: 'DINHEIRO' | 'PIX' | 'DEBITO' | 'CREDITO' | 'FIADO';
   amountPaid: number;
   customerName?: string;
+  customerPhone?: string;
   customerId?: string;
   dueDate?: string;
 }): Promise<Sale> {
@@ -419,6 +420,17 @@ export async function createSale(data: {
         if (custLookup.rows.length > 0) {
           finalCustomerId = custLookup.rows[0].id;
           finalCustomerName = custLookup.rows[0].name;
+        } else {
+          // Cadastra o cliente automaticamente no banco para vincular a conta de fiado
+          const safePhone = data.customerPhone?.trim() || 'Não informado';
+          const newCust = await client.query(
+            `INSERT INTO customers (name, phone, credit_limit, current_debt, status, notes)
+             VALUES ($1, $2, 500.00, 0.00, 'ACTIVE', 'Cadastrado automaticamente via venda no PDV')
+             RETURNING id, name;`,
+            [finalCustomerName, safePhone]
+          );
+          finalCustomerId = newCust.rows[0].id;
+          finalCustomerName = newCust.rows[0].name;
         }
       }
 
