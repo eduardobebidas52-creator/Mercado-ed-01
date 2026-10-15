@@ -24,7 +24,8 @@ export const PendingModulesPage: React.FC = () => {
       icon: Lock,
       description: 'Criação da conta inicial do administrador Eduardo com hash seguro de senha, geração de tokens JWT e gestão de operadores e caixas.',
       tables: ['users', 'user_sessions', 'audit_logs'],
-      status: 'Aguardando Aprovação da Etapa 1',
+      status: 'Concluído e Operacional',
+      isCompleted: true,
     },
     {
       stage: 'Etapa 3',
@@ -32,39 +33,44 @@ export const PendingModulesPage: React.FC = () => {
       icon: Package,
       description: 'Catálogo de itens com código de barras, categoria, preço de custo, preço de venda, margem, estoque mínimo e histórico de entradas/perdas.',
       tables: ['categories', 'products', 'stock_movements'],
-      status: 'Aguardando Etapas Anteriores',
+      status: 'Concluído e Operacional',
+      isCompleted: true,
     },
     {
       stage: 'Etapa 4',
-      title: 'Frente de Caixa (PDV) e Vendas Rápidas',
+      title: 'Frente de Caixa (PDV) e Operação de Caixa',
       icon: ShoppingCart,
-      description: 'Operação de caixa com bipagem de código de barras ou busca rápida, cálculo centralizado no backend de totais, troco e múltiplos pagamentos (dinheiro, PIX, cartão).',
-      tables: ['sales', 'sale_items', 'payments'],
-      status: 'Aguardando Etapas Anteriores',
+      description: 'Operação de caixa com bipagem de código de barras ou busca rápida, abertura/fechamento com conferência cega, suprimento, sangria e múltiplos pagamentos.',
+      tables: ['sales', 'sale_items', 'cash_registers', 'cash_transactions'],
+      status: 'Concluído e Operacional',
+      isCompleted: true,
     },
     {
       stage: 'Etapa 5',
-      title: 'Controle de Caixa (Abertura, Sangria e Fechamento)',
+      title: 'Alertas de Validade e Estoque Mínimo',
       icon: Wallet,
-      description: 'Abertura de turno com valor inicial, sangrias e suprimentos com justificativa, conferência cega e fechamento de caixa auditado.',
-      tables: ['cash_registers', 'cash_transactions'],
-      status: 'Aguardando Etapas Anteriores',
+      description: 'Abas exclusivas para controle de lotes a vencer (laranja 7d / amarelo 30d), produtos vencidos (vermelho), descarte por avaria e lista de reposição.',
+      tables: ['product_batches', 'batch_loss_records', 'alert_settings'],
+      status: 'Concluído e Operacional',
+      isCompleted: true,
     },
     {
       stage: 'Etapa 6',
-      title: 'Controle de Fiado (Contas a Receber de Clientes)',
+      title: 'Clientes, Alerta de Fiado e Baixa de Recebimentos',
       icon: Users,
-      description: 'Cadastro de clientes com limite de crédito autorizado, lançamento de compras a prazo, emissão de comprovantes e abatimento parcial ou total de dívidas.',
-      tables: ['customers', 'credit_accounts', 'credit_ledger'],
-      status: 'Aguardando Etapas Anteriores',
+      description: 'Controle de fiado, ficha do cliente, limites de crédito, alertas de inadimplência com cobrança WhatsApp e recibos oficiais com integração de caixa.',
+      tables: ['customers', 'customer_debts', 'debt_payments'],
+      status: 'Concluído e Operacional',
+      isCompleted: true,
     },
     {
       stage: 'Etapa 7',
-      title: 'Relatórios Gerenciais e Indicadores de Desempenho',
+      title: 'Financeiro, Fluxo de Caixa e Relatórios (DRE / Curva ABC)',
       icon: BarChart3,
-      description: 'Curva ABC de produtos mais vendidos, margem de contribuição bruta, fechamento financeiro diário/mensal e fluxo de caixa consolidado.',
-      tables: ['daily_summaries', 'analytics_cache'],
-      status: 'Aguardando Etapas Anteriores',
+      description: 'Demonstrativo de resultado do exercício (DRE), cálculo do lucro real líquido, produtos mais lucrativos (Curva ABC), despesas operacionais e fechamento.',
+      tables: ['expense_categories', 'expenses', 'financial_reports'],
+      status: 'PRÓXIMA ETAPA A INICIAR',
+      isNext: true,
     },
   ];
 
@@ -105,7 +111,10 @@ export const PendingModulesPage: React.FC = () => {
                       <h3 className="text-sm font-semibold text-slate-900 leading-tight">{item.title}</h3>
                     </div>
                   </div>
-                  <StatusBadge status="neutral" label="Não Implementado" />
+                  <StatusBadge 
+                    status={item.isCompleted ? 'success' : item.isNext ? 'warning' : 'neutral'} 
+                    label={item.isCompleted ? 'Concluído' : item.isNext ? 'Próxima Etapa' : 'Não Implementado'} 
+                  />
                 </div>
 
                 <p className="text-xs text-slate-600 leading-relaxed mb-4">
